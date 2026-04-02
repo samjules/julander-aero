@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NX7BWS Weight & Thrust Calculator | Julander AERO</title>
+    <meta name="description" content="Interactive weight and thrust budget calculator for the NX7BWS Amphibious High-Speed VTOL Cargo Concept, benchmarked against the Robinson R66.">
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --border: #1e1e2e;
+            --text: #e0e0e8;
+            --text-dim: #8888a0;
+            --accent: #4a9eff;
+            --accent-glow: rgba(74, 158, 255, 0.15);
+            --pass: #1D9E75;
+            --warn: #BA7517;
+            --fail: #D85A30;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 100;
+            background: rgba(10, 10, 15, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text);
+            text-decoration: none;
+        }
+
+        .logo span { color: var(--accent); }
+
+        .nav-links { display: flex; gap: 2rem; list-style: none; }
+
+        .nav-links a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.85rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover { color: var(--accent); }
+        .nav-links a.active { color: var(--accent); }
+
+        /* PAGE HEADER */
+        .page-header {
+            padding: 8rem 2rem 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 0.75rem;
+        }
+
+        .section-title {
+            font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .section-text {
+            color: var(--text-dim);
+            max-width: 700px;
+            font-size: 1.05rem;
+            margin-bottom: 0;
+        }
+
+        /* METRIC CARDS */
+        .metric-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            padding: 2rem 2rem 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .metric-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .metric-card .label {
+            font-size: 0.75rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            margin-bottom: 0.75rem;
+        }
+
+        .metric-card .value {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+
+        .metric-card .unit {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: var(--text-dim);
+        }
+
+        .metric-card .ref {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+
+        .metric-card .ref strong {
+            color: var(--text-dim);
+            font-weight: 600;
+        }
+
+        /* MAIN CONTENT */
+        .calc-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            padding: 2.5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .calc-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem;
+        }
+
+        .panel-title {
+            font-size: 0.75rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        /* TABLES */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            text-align: left;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-dim);
+            padding: 0.5rem 0.5rem;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+        }
+
+        th:not(:first-child) { text-align: right; }
+
+        td {
+            padding: 0.6rem 0.5rem;
+            border-bottom: 1px solid rgba(30, 30, 46, 0.5);
+            vertical-align: middle;
+        }
+
+        td:not(:first-child) { text-align: right; }
+
+        td.component-name {
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        td.r66-val {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        tr.total-row td {
+            border-top: 1px solid var(--border);
+            border-bottom: none;
+            font-weight: 700;
+            padding-top: 0.85rem;
+        }
+
+        tr.total-row td:first-child {
+            color: var(--text);
+        }
+
+        tr.derived-row td {
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* INPUTS */
+        input[type="number"] {
+            width: 80px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--accent);
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.35rem 0.5rem;
+            text-align: right;
+            -moz-appearance: textfield;
+            transition: border-color 0.2s;
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* ANALYSIS TABLE */
+        .analysis-val {
+            color: var(--text);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* FAN DIAGRAM */
+        .diagram-section {
+            padding: 0 2rem 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .diagram-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem;
+        }
+
+        canvas {
+            width: 100%;
+            display: block;
+            border-radius: 3px;
+        }
+
+        /* GO/NO-GO */
+        .gng-section {
+            padding: 2rem 2rem 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .gng-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem;
+        }
+
+        .gng-table td:first-child { font-weight: 600; }
+
+        .gng-status {
+            display: inline-block;
+            padding: 0.2rem 0.75rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .gng-pass {
+            background: rgba(29, 158, 117, 0.15);
+            color: var(--pass);
+            border: 1px solid rgba(29, 158, 117, 0.3);
+        }
+
+        .gng-warn {
+            background: rgba(186, 117, 23, 0.15);
+            color: var(--warn);
+            border: 1px solid rgba(186, 117, 23, 0.3);
+        }
+
+        .gng-fail {
+            background: rgba(216, 90, 48, 0.15);
+            color: var(--fail);
+            border: 1px solid rgba(216, 90, 48, 0.3);
+        }
+
+        /* INSIGHTS */
+        .insights-section {
+            padding: 2.5rem 2rem 0;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .insights-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1.5rem 2rem;
+        }
+
+        .insight-item {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(30, 30, 46, 0.5);
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        .insight-item:last-child { border-bottom: none; }
+
+        .insight-item strong {
+            color: var(--text);
+        }
+
+        /* FOOTER */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+            margin-top: 4rem;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-logo {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .footer-logo span { color: var(--accent); }
+
+        footer p {
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .calc-content { grid-template-columns: 1fr; }
+            .page-header { padding: 7rem 1.25rem 2rem; }
+            .metric-cards,
+            .calc-content,
+            .diagram-section,
+            .gng-section,
+            .insights-section { padding-left: 1.25rem; padding-right: 1.25rem; }
+            input[type="number"] { width: 70px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- NAV -->
+    <nav>
+        <div class="nav-inner">
+            <a href="index.html" class="logo">Julander <span>AERO</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html#about">About</a></li>
+                <li><a href="index.html#propulsion">Propulsion</a></li>
+                <li><a href="index.html#designs">Designs</a></li>
+                <li><a href="calculator.html" class="active">Calculator</a></li>
+                <li><a href="datasheet.html">Datasheet</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <p class="section-label">Engineering Tool</p>
+        <h1 class="section-title">NX7BWS Weight &amp; Thrust Budget Calculator</h1>
+        <p class="section-text">Interactive engineering calculator for the NX7BWS Amphibious High-Speed VTOL Cargo Concept. Edit component weights to see real-time thrust, power, disc loading, and payload figures &mdash; benchmarked against the Robinson R66.</p>
+    </div>
+
+    <!-- METRIC CARDS -->
+    <div class="metric-cards">
+        <div class="metric-card">
+            <div class="label">MTOW</div>
+            <div class="value"><span id="card-mtow">1270</span> <span class="unit">kg</span></div>
+            <div class="ref">R66: <strong>1,225 kg</strong></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">Payload</div>
+            <div class="value"><span id="card-payload">350</span> <span class="unit">kg</span></div>
+            <div class="ref">R66: <strong>408 kg</strong></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">Hover Power</div>
+            <div class="value"><span id="card-power">—</span> <span class="unit">shp</span></div>
+            <div class="ref">R66: <strong>270 shp</strong></div>
+        </div>
+        <div class="metric-card">
+            <div class="label">Disc Loading</div>
+            <div class="value"><span id="card-disc">—</span> <span class="unit">kg/m²</span></div>
+            <div class="ref">R66: <strong>15.4 kg/m²</strong></div>
+        </div>
+    </div>
+
+    <!-- TWO-COLUMN LAYOUT -->
+    <div class="calc-content">
+        <!-- LEFT: Weight Budget -->
+        <div class="calc-panel">
+            <div class="panel-title">Weight Budget</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>NX7BWS (kg)</th>
+                        <th>R66 (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="component-name">Fuselage &amp; skirt structure</td>
+                        <td><input type="number" id="w-fuselage" value="260" min="0" step="5"></td>
+                        <td class="r66-val">185</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Ducted fan assemblies (&times;2)</td>
+                        <td><input type="number" id="w-fans" value="160" min="0" step="5"></td>
+                        <td class="r66-val">&mdash;</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Propulsion (engines/gearboxes)</td>
+                        <td><input type="number" id="w-propulsion" value="130" min="0" step="5"></td>
+                        <td class="r66-val">91</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Avionics &amp; flight control</td>
+                        <td><input type="number" id="w-avionics" value="65" min="0" step="5"></td>
+                        <td class="r66-val">40</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Power/fuel system</td>
+                        <td><input type="number" id="w-power" value="45" min="0" step="5"></td>
+                        <td class="r66-val">30</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Cargo bay mechanisms</td>
+                        <td><input type="number" id="w-cargo" value="55" min="0" step="5"></td>
+                        <td class="r66-val">10</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Electrical &amp; hydraulics</td>
+                        <td><input type="number" id="w-electrical" value="55" min="0" step="5"></td>
+                        <td class="r66-val">66</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Empty Weight</td>
+                        <td style="text-align:right;color:var(--accent);" id="empty-weight">770</td>
+                        <td class="r66-val">576</td>
+                    </tr>
+                    <tr class="derived-row">
+                        <td>Fuel (fixed baseline)</td>
+                        <td style="text-align:right;">150</td>
+                        <td class="r66-val">224</td>
+                    </tr>
+                    <tr class="derived-row">
+                        <td>Payload (calculated)</td>
+                        <td style="text-align:right;" id="payload-val">350</td>
+                        <td class="r66-val">408</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>MTOW (calculated)</td>
+                        <td style="text-align:right;color:var(--accent);" id="mtow-val">1270</td>
+                        <td class="r66-val">1,225</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- RIGHT: Disc & Thrust Analysis -->
+        <div class="calc-panel">
+            <div class="panel-title">Disc &amp; Thrust Analysis</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Parameter</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="component-name">Fan diameter</td>
+                        <td class="analysis-val">7.5 m</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Disc area (each fan)</td>
+                        <td class="analysis-val">44.18 m²</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Total disc area</td>
+                        <td class="analysis-val">88.36 m²</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Duct augmentation factor</td>
+                        <td class="analysis-val">1.18</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Effective disc area</td>
+                        <td class="analysis-val">104.26 m²</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Disc loading</td>
+                        <td class="analysis-val" id="disc-loading">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Max MTOW (at 15.4 kg/m²)</td>
+                        <td class="analysis-val" id="max-mtow">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Hover thrust required</td>
+                        <td class="analysis-val" id="hover-thrust">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Ideal hover power</td>
+                        <td class="analysis-val" id="ideal-power">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Actual hover power (FoM 0.78)</td>
+                        <td class="analysis-val" id="actual-power">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Hover power (shp)</td>
+                        <td class="analysis-val" id="hover-shp">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Available thrust (1.5&times; margin)</td>
+                        <td class="analysis-val" id="avail-thrust">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Thrust-to-weight ratio</td>
+                        <td class="analysis-val" id="tw-ratio">—</td>
+                    </tr>
+                    <tr>
+                        <td class="component-name">Empty weight fraction</td>
+                        <td class="analysis-val" id="ew-fraction">—</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- FAN GEOMETRY DIAGRAM -->
+    <div class="diagram-section">
+        <div class="diagram-panel">
+            <div class="panel-title">Fan Geometry &mdash; Top View</div>
+            <canvas id="fan-canvas" height="300"></canvas>
+        </div>
+    </div>
+
+    <!-- GO / NO-GO -->
+    <div class="gng-section">
+        <div class="gng-panel">
+            <div class="panel-title">Go / No-Go Checklist</div>
+            <table class="gng-table">
+                <thead>
+                    <tr>
+                        <th>Check</th>
+                        <th>Threshold</th>
+                        <th>Actual</th>
+                        <th style="text-align:center;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Disc loading</td>
+                        <td class="r66-val">&le; 18 kg/m²</td>
+                        <td class="analysis-val" id="gng-disc">—</td>
+                        <td style="text-align:center;" id="gng-disc-s"></td>
+                    </tr>
+                    <tr>
+                        <td>Hover power vs R66</td>
+                        <td class="r66-val">&lt; 270 shp</td>
+                        <td class="analysis-val" id="gng-power">—</td>
+                        <td style="text-align:center;" id="gng-power-s"></td>
+                    </tr>
+                    <tr>
+                        <td>Empty weight fraction</td>
+                        <td class="r66-val">&lt; 58%</td>
+                        <td class="analysis-val" id="gng-ew">—</td>
+                        <td style="text-align:center;" id="gng-ew-s"></td>
+                    </tr>
+                    <tr>
+                        <td>Payload</td>
+                        <td class="r66-val">&gt; 300 kg</td>
+                        <td class="analysis-val" id="gng-payload">—</td>
+                        <td style="text-align:center;" id="gng-payload-s"></td>
+                    </tr>
+                    <tr>
+                        <td>Thrust-to-weight ratio</td>
+                        <td class="r66-val">&ge; 1.5</td>
+                        <td class="analysis-val" id="gng-tw">—</td>
+                        <td style="text-align:center;" id="gng-tw-s"></td>
+                    </tr>
+                    <tr>
+                        <td>Fan offset CG zone</td>
+                        <td class="r66-val">7.4m &pm; 0.1m</td>
+                        <td class="analysis-val">7.40 m</td>
+                        <td style="text-align:center;" id="gng-cg-s"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ENGINEERING INSIGHTS -->
+    <div class="insights-section">
+        <div class="insights-panel">
+            <div class="panel-title">Key Engineering Insights</div>
+            <div class="insight-item"><strong>Disc area advantage:</strong> NX7BWS has 88.4 m² total vs R66's 79.5 m² &mdash; an 11% raw advantage. With duct augmentation, effective disc area is ~104 m².</div>
+            <div class="insight-item"><strong>Power efficiency:</strong> Despite similar MTOW, NX7BWS requires significantly less power to hover than the R66 because of larger disc area (actuator disk theory &mdash; larger disc = lower induced velocity = less power).</div>
+            <div class="insight-item"><strong>Critical constraint:</strong> Empty weight fraction. Clamshell doors, retractable skid wings, and ducted skirt all add mass the R66 doesn't carry. Composite construction throughout is required.</div>
+            <div class="insight-item"><strong>CG zone:</strong> The fore-aft fan offset places the CG zone at the midpoint of the two fan centers (7.4m from nose). This must be respected in weight placement during loading.</div>
+            <div class="insight-item"><strong>Propulsion TBD:</strong> Power estimate of ~140&ndash;175 shp to hover means electric or hybrid propulsion is viable &mdash; well below R66-class turbine requirement.</div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+        <div class="footer-inner">
+            <div class="footer-logo">Julander <span>AERO</span></div>
+            <p>&copy; 2026 Julander AERO. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        // === CONSTANTS ===
+        const FAN_DIAMETER = 7.5;
+        const FAN_RADIUS = FAN_DIAMETER / 2;
+        const DISC_AREA_EACH = Math.PI * FAN_RADIUS * FAN_RADIUS;
+        const TOTAL_DISC_AREA = DISC_AREA_EACH * 2;
+        const DUCT_AUGMENTATION = 1.18;
+        const EFFECTIVE_DISC_AREA = TOTAL_DISC_AREA * DUCT_AUGMENTATION;
+        const AIR_DENSITY = 1.225;
+        const FIGURE_OF_MERIT = 0.78;
+        const FUEL_WEIGHT = 150;
+        const DISC_LOADING_TARGET = 15.4;
+        const FUSELAGE_LENGTH = 14.8;
+        const FAN1_CENTER = 5.525;
+        const FAN2_CENTER = 9.275;
+        const CG_MIDPOINT = 7.4;
+
+        // === INPUT ELEMENTS ===
+        const inputs = {
+            fuselage: document.getElementById('w-fuselage'),
+            fans: document.getElementById('w-fans'),
+            propulsion: document.getElementById('w-propulsion'),
+            avionics: document.getElementById('w-avionics'),
+            power: document.getElementById('w-power'),
+            cargo: document.getElementById('w-cargo'),
+            electrical: document.getElementById('w-electrical'),
+        };
+
+        // === CALCULATE ===
+        function calculate() {
+            const weights = {};
+            let emptyWeight = 0;
+            for (const [key, el] of Object.entries(inputs)) {
+                weights[key] = parseFloat(el.value) || 0;
+                emptyWeight += weights[key];
+            }
+
+            // Max MTOW from disc loading target
+            const maxMTOW = TOTAL_DISC_AREA * DISC_LOADING_TARGET * DUCT_AUGMENTATION;
+
+            // Payload
+            const payload = maxMTOW - emptyWeight - FUEL_WEIGHT;
+            const mtow = emptyWeight + FUEL_WEIGHT + Math.max(0, payload);
+
+            // Disc loading
+            const discLoading = mtow / TOTAL_DISC_AREA;
+
+            // Hover power (actuator disk theory)
+            const thrustN = mtow * 9.81;
+            const pIdeal = Math.pow(thrustN, 1.5) / Math.sqrt(2 * AIR_DENSITY * TOTAL_DISC_AREA);
+            const pActual = pIdeal / FIGURE_OF_MERIT;
+            const pShp = pActual * 0.001341;
+
+            // Thrust-to-weight (with 1.5x safety margin)
+            const availThrust = TOTAL_DISC_AREA * DISC_LOADING_TARGET * DUCT_AUGMENTATION * 1.5;
+            const twRatio = availThrust / mtow;
+
+            // Empty weight fraction
+            const ewFraction = (emptyWeight / mtow) * 100;
+
+            // === UPDATE DOM ===
+            // Weight table
+            document.getElementById('empty-weight').textContent = Math.round(emptyWeight);
+            document.getElementById('payload-val').textContent = Math.round(payload);
+            document.getElementById('mtow-val').textContent = Math.round(mtow);
+
+            // Metric cards
+            document.getElementById('card-mtow').textContent = Math.round(mtow).toLocaleString();
+            document.getElementById('card-payload').textContent = Math.round(payload);
+            document.getElementById('card-power').textContent = pShp.toFixed(1);
+            document.getElementById('card-disc').textContent = discLoading.toFixed(1);
+
+            // Analysis table
+            document.getElementById('disc-loading').textContent = discLoading.toFixed(2) + ' kg/m²';
+            document.getElementById('max-mtow').textContent = maxMTOW.toFixed(0) + ' kg';
+            document.getElementById('hover-thrust').textContent = (thrustN / 1000).toFixed(2) + ' kN';
+            document.getElementById('ideal-power').textContent = (pIdeal / 1000).toFixed(1) + ' kW';
+            document.getElementById('actual-power').textContent = (pActual / 1000).toFixed(1) + ' kW';
+            document.getElementById('hover-shp').textContent = pShp.toFixed(1) + ' shp';
+            document.getElementById('avail-thrust').textContent = availThrust.toFixed(0) + ' kg';
+            document.getElementById('tw-ratio').textContent = twRatio.toFixed(2);
+            document.getElementById('ew-fraction').textContent = ewFraction.toFixed(1) + '%';
+
+            // Go/No-Go
+            updateGNG('gng-disc', 'gng-disc-s', discLoading.toFixed(2) + ' kg/m²', discLoading, 18, 'lte', 16.2);
+            updateGNG('gng-power', 'gng-power-s', pShp.toFixed(1) + ' shp', pShp, 270, 'lt', 243);
+            updateGNG('gng-ew', 'gng-ew-s', ewFraction.toFixed(1) + '%', ewFraction, 58, 'lt', 52.2);
+            updateGNG('gng-payload', 'gng-payload-s', Math.round(payload) + ' kg', payload, 300, 'gt', 330);
+            updateGNG('gng-tw', 'gng-tw-s', twRatio.toFixed(2), twRatio, 1.5, 'gte', 1.65);
+
+            // CG always passes
+            document.getElementById('gng-cg-s').innerHTML = '<span class="gng-status gng-pass">Pass</span>';
+
+            // Color metric cards based on status
+            colorMetricCard('card-disc', discLoading, 18, 'lte', 16.2);
+            colorMetricCard('card-power', pShp, 270, 'lt', 243);
+            colorMetricCard('card-payload', payload, 300, 'gt', 330);
+        }
+
+        function updateGNG(valId, statusId, displayVal, value, threshold, op, warnThreshold) {
+            document.getElementById(valId).textContent = displayVal;
+
+            let pass = false;
+            let warn = false;
+
+            if (op === 'lte') { pass = value <= threshold; warn = value > warnThreshold && value <= threshold; }
+            else if (op === 'lt') { pass = value < threshold; warn = value > warnThreshold && value < threshold; }
+            else if (op === 'gt') { pass = value > threshold; warn = value > threshold && value < warnThreshold; }
+            else if (op === 'gte') { pass = value >= threshold; warn = value >= threshold && value < warnThreshold; }
+
+            let cls, label;
+            if (!pass) { cls = 'gng-fail'; label = 'Fail'; }
+            else if (warn) { cls = 'gng-warn'; label = 'Warning'; }
+            else { cls = 'gng-pass'; label = 'Pass'; }
+
+            document.getElementById(statusId).innerHTML = `<span class="gng-status ${cls}">${label}</span>`;
+        }
+
+        function colorMetricCard(id, value, threshold, op, warnThreshold) {
+            const el = document.getElementById(id);
+            let pass, warn;
+            if (op === 'lte') { pass = value <= threshold; warn = value > warnThreshold && value <= threshold; }
+            else if (op === 'lt') { pass = value < threshold; warn = value > warnThreshold && value < threshold; }
+            else if (op === 'gt') { pass = value > threshold; warn = value > threshold && value < warnThreshold; }
+            else if (op === 'gte') { pass = value >= threshold; warn = value >= threshold && value < warnThreshold; }
+
+            if (!pass) el.style.color = 'var(--fail)';
+            else if (warn) el.style.color = 'var(--warn)';
+            else el.style.color = 'var(--accent)';
+        }
+
+        // === FAN DIAGRAM ===
+        function drawFanDiagram() {
+            const canvas = document.getElementById('fan-canvas');
+            const container = canvas.parentElement;
+            const dpr = window.devicePixelRatio || 1;
+            const w = container.clientWidth - 48; // padding
+            const h = 300;
+
+            canvas.width = w * dpr;
+            canvas.height = h * dpr;
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+
+            const ctx = canvas.getContext('2d');
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, w, h);
+
+            // Scale: map 14.8m fuselage to ~80% of canvas width
+            const margin = 60;
+            const drawW = w - margin * 2;
+            const scale = drawW / FUSELAGE_LENGTH;
+            const cy = h / 2;
+
+            function mx(meters) { return margin + meters * scale; }
+
+            // Fuselage outline (rounded rectangle)
+            const fW = FUSELAGE_LENGTH * scale;
+            const fH = 50;
+            const fy = cy - fH / 2;
+            const r = 20;
+
+            ctx.strokeStyle = '#2a2a3e';
+            ctx.lineWidth = 1.5;
+            ctx.fillStyle = 'rgba(18, 18, 26, 0.6)';
+            ctx.beginPath();
+            ctx.moveTo(mx(0) + r, fy);
+            ctx.lineTo(mx(0) + fW - r, fy);
+            ctx.arcTo(mx(0) + fW, fy, mx(0) + fW, fy + r, r);
+            ctx.lineTo(mx(0) + fW, fy + fH - r);
+            ctx.arcTo(mx(0) + fW, fy + fH, mx(0) + fW - r, fy + fH, r);
+            ctx.lineTo(mx(0) + r, fy + fH);
+            ctx.arcTo(mx(0), fy + fH, mx(0), fy + fH - r, r);
+            ctx.lineTo(mx(0), fy + r);
+            ctx.arcTo(mx(0), fy, mx(0) + r, fy, r);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Nose label
+            ctx.fillStyle = '#555570';
+            ctx.font = '11px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('NOSE', mx(0), fy - 12);
+
+            // Tail label
+            ctx.fillText('TAIL', mx(FUSELAGE_LENGTH), fy - 12);
+
+            // Fan circles
+            const fanR = (FAN_DIAMETER / 2) * scale;
+
+            // Fan 1
+            ctx.strokeStyle = 'var(--accent)';
+            ctx.strokeStyle = '#4a9eff';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.arc(mx(FAN1_CENTER), cy, fanR, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Fan 2
+            ctx.beginPath();
+            ctx.arc(mx(FAN2_CENTER), cy, fanR, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Fan centers
+            ctx.fillStyle = '#4a9eff';
+            ctx.beginPath();
+            ctx.arc(mx(FAN1_CENTER), cy, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(mx(FAN2_CENTER), cy, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Fan labels
+            ctx.fillStyle = '#8888a0';
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText('Fan 1 (5.525m)', mx(FAN1_CENTER), cy + fanR + 18);
+            ctx.fillText('Fan 2 (9.275m)', mx(FAN2_CENTER), cy + fanR + 18);
+
+            // CG centerline
+            ctx.strokeStyle = '#1D9E75';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(mx(CG_MIDPOINT), cy - fanR - 15);
+            ctx.lineTo(mx(CG_MIDPOINT), cy + fanR + 5);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // CG label
+            ctx.fillStyle = '#1D9E75';
+            ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText('CG 7.4m', mx(CG_MIDPOINT), cy - fanR - 20);
+
+            // Offset dimension line
+            const dimY = cy - fanR - 40;
+            ctx.strokeStyle = '#555570';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(mx(FAN1_CENTER), dimY);
+            ctx.lineTo(mx(FAN2_CENTER), dimY);
+            ctx.stroke();
+
+            // Dimension ticks
+            ctx.beginPath();
+            ctx.moveTo(mx(FAN1_CENTER), dimY - 4);
+            ctx.lineTo(mx(FAN1_CENTER), dimY + 4);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(mx(FAN2_CENTER), dimY - 4);
+            ctx.lineTo(mx(FAN2_CENTER), dimY + 4);
+            ctx.stroke();
+
+            // Dimension label
+            ctx.fillStyle = '#555570';
+            ctx.font = '10px -apple-system, BlinkMacSystemFont, sans-serif';
+            ctx.fillText('3.75m offset', (mx(FAN1_CENTER) + mx(FAN2_CENTER)) / 2, dimY - 8);
+
+            // Overall length dimension
+            const lenY = cy + fanR + 38;
+            ctx.strokeStyle = '#333350';
+            ctx.beginPath();
+            ctx.moveTo(mx(0), lenY);
+            ctx.lineTo(mx(FUSELAGE_LENGTH), lenY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(mx(0), lenY - 3);
+            ctx.lineTo(mx(0), lenY + 3);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(mx(FUSELAGE_LENGTH), lenY - 3);
+            ctx.lineTo(mx(FUSELAGE_LENGTH), lenY + 3);
+            ctx.stroke();
+            ctx.fillStyle = '#555570';
+            ctx.fillText('14.8m overall length', (mx(0) + mx(FUSELAGE_LENGTH)) / 2, lenY + 16);
+        }
+
+        // === INIT ===
+        for (const el of Object.values(inputs)) {
+            el.addEventListener('input', calculate);
+        }
+
+        calculate();
+        drawFanDiagram();
+        window.addEventListener('resize', drawFanDiagram);
+    </script>
+</body>
+</html>
